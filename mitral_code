@@ -1,0 +1,439 @@
+```{r Loading Libraries}
+library(tidyverse)
+library(readxl)
+library(gtsummary)
+library(mice)
+library(lubridate)
+```
+
+```{r Column Handling}
+End_Date = as.Date("28/02/2023", "%d/%m/%Y")
+
+S_Data <- read_csv('/Users/ruq20tzu/Desktop/new_file.csv',
+    col_types = cols(`second [date]` = col_character(), 
+        `Category of aortic regurgitation` = col_character(), 
+        `Date of last cardiac operation` = col_character(), 
+        `Severity of Aortic valve stenosis (EOA)` = col_character(), 
+        `Severity of Aortic valve stenosis gradient` = col_character(), 
+        `Tricuspid Valve Regurgitation` = col_character(), 
+        `Any Transfused  Product Intra or Post Op(FFP/Plts/Red Cells)` = col_character(), 
+        Cryoprecipitate = col_character(), 
+        `Euroscore Missing Data` = col_character(), 
+        `FFP Transfused Total Stay From Operation To Discharge Total Number Of Units` = col_character(), 
+        `Fibrinogen(Riastapp)` = col_character(), 
+        PCC = col_character(), `PLT Transfused Operation To Discharge Total Number Of Units` = col_character(), 
+        PLTS = col_character(), PRC = col_character(), 
+        `Red Blood Cells Transfused From Operation To Discharge Total Number Units` = col_character(), 
+        `SCTS complex CABG Bayes score` = col_character()), na = c("", "NA", "N/A", 'n/a', 'no data'))
+
+Data <- S_Data %>%
+  transmute(
+    ID = `case number`,
+    Redo = factor(`re-do`),
+    Date_1 = as.Date(`first [date]`, format = "%d/%m/%Y"),
+    Date_2 = as.Date(`second [date]`, format = "%d/%m/%Y"),
+    Creatinine_Surgery = as.numeric(`Actual creatinine at time of surgery`),
+    Admission_Date = as.Date(`Admission date`, format = "%d-%b-%y"),
+    Age = as.numeric(`Age at operation`),
+    Angina_Status = factor(`Angina status pre-surgery ordinal`, levels = 1:4, labels = c('No Angina', 'Slight limitation of ordinary activity', 'Marked limitation of ordinary activity', 'Symptoms at rest or minimal activity')),
+    CABG = factor(CABG),
+    Cardiac_Proc = factor(`Cardiac procedures`, levels = c("CABG + valve", "Valve alone", "Valve + other", "CABG + valve + other")),
+    Cardiogenic_Shock = factor(`Cardiogenic shock (pre-operation)`),
+    Smoking_Stat = factor(`Cigarette smoking history`, labels = c("Current Smoker", "Ex-Smoker", "Never Smoked")),
+    Creatinine_Clearance = as.numeric(`Creatinine clearance`),
+    DateTime_LastCardiacOp = `Date of last cardiac operation`,
+    DateTime_LastCatheter = as.Date(`Date of last catheterisation`, format = "%d-%b-%y"),
+    Diabetes_Mx = factor(`Diabetes management`, labels = c("Not diabetic", "Insulin", "Diet", "Oral therapy")),
+    Dyspnoea_Status = factor(`Dyspnoea status pre-surgery`),
+    LVEF_Cat = factor(`Ejection fraction category ordinal`, levels = 2:4, labels = c("Poor (LVEF 21-30%)", "Moderate (LVEF 31-50%)", "Good (LVEF >50%)")),
+    Extent_of_CorVessDx = factor(`Extent of coronary vessel disease`),
+    Extracardiac_Arteriopathy = factor(`Extracardiac arteriopathy`, levels = 0:1, labels = c("No", "Yes")),
+    Gender = factor(Gender),
+    Hb = as.numeric(`Haemoglobin At Time Of Surgery`),
+    Height = as.numeric(Height...34),
+    Weight = as.numeric(Weight...73),
+    BMI = as.numeric(`Body mass index`),
+    BSA = as.numeric(`Body surface area`),
+    PMHx_HTN = factor(`History of hypertension`),
+    PMHx_NeurologicalDx = factor(`History of neurological disease`),
+    PMHx_NeurologicalDysfn = factor(`History of neurological dysfunction`),
+    PMHx_Mobility = factor(`History of poor mobility`),
+    PMHx_PulmonaryDx = factor(`History of pulmonary disease`),
+    Surgery_MI_interval = factor(`Interval between surgery and last MI`),
+    IV_Inotrope = factor(`Intravenous inotropes prior to anaesthesia`),
+    IV_Nitrate_Heparin = factor(`Intravenous nitrates or any heparin`),
+    LeftHeart_Catheterisation = factor(`Left heart catheterisation`),
+    LMS_Dx = factor(`Left main stem disease`),
+    LVEF_perc = as.numeric(`Left ventricular ejection fraction`),
+    Minimitral = factor(minimitral),
+    Converted = factor(case_when(`Minimal Invasive Procedure?` == "Converted" ~ 1,
+                          TRUE ~ 0), levels = 0:1, labels = c("No", "Yes")),
+    Num_HeartOp = as.numeric(`Number of previous heart operations`),
+    Num_PrevMIs = factor(`Number of previous MIs`),
+ #   OperativeFindings = as.character(`Operative Findings`),
+    OperativeUrgency = factor(`Operative urgency`),
+    OtherCardiacProc_Cat = factor(`Other actual cardiac procedures`),
+    OtherCardiacProc_Bin = factor(`Other cardiac procedures`),
+    Syst_PA = as.numeric(case_when(`PA systolic` == 0 ~ NA_real_,
+                                   TRUE ~ `PA systolic`)),
+    Preop_SupportDevice = factor(`Pre-op support devices used`),
+    Preop_Rhythm = factor(`Pre-operative heart thythm`),
+    PMHx_CardiacSurgery = factor(`Previous cardiac surgery`),
+    PMHx_PCI = factor(`Previous PCI`),
+    PMHx_PulHTN = factor(`Pulmonary Hypertension`),
+    Pulmonary_HTN_lvl = factor(`Pulmonary Hypertension Level - If applicable`),
+    Renal_Fn = factor(`Renal function / Dialysis`),
+    Renal_Impairment = factor(`Renal Impairment`),
+    SurgicalIncision = factor(`Surgical Incision`),
+    VentilatedPreOP = factor(`Ventilated (pre-operation)`),
+    Additive_EUROScore = as.numeric(`Additive EUROScore`),
+    EUROScore_II = as.numeric(`EuroSCORE II`),
+    Logistic_EUROScore = as.numeric(`Logistic EUROScore`),
+    SCTS_Logistic_EUROScore = as.numeric(`SCTS Logistic EuroSCORE`),
+    Any_Transfused = factor(`Any Transfused  Product Intra or Post Op(FFP/Plts/Red Cells)`),
+ #   Arrhythmias = as.character(Arrhythmias),
+    BloodLoss = as.numeric(`Blood Loss`),
+    BloodTransfusedUnits = as.numeric(`Blood Transfused`),
+    BloodUsed = factor(`Blood Used`),
+    Cardioplegia_infusionmode = factor(`Cardioplegia - Infusion mode`),
+    Cardioplegia_soluiton = factor(`Cardioplegia - solution`),
+    Cardioplegia_temperature = factor(`Cardioplegia - Temperature`),
+    #Cardioplegia_timing = factor(`Cardioplegia - Timing`),
+    #Cardiopulmonary_bypass = factor(`Cardiopulmonary bypass`),
+    Cause_of_Death = factor(`Cause of Death`),
+    Cell_Salvage = as.numeric(`Cell Salvage`),
+    CreatinineGT200 = factor(`Creatinine &gt;200, no dialysis`),
+    Cryoprecipitate = as.numeric(Cryoprecipitate),
+    CumulativeBypassTime = as.numeric(`Cumulative bypass time`),
+    CumulativeCrossClampTime = as.numeric(`Cumulative cross clamp time`),
+    Discharge_Date = as.POSIXct(`Date of discharge / Date of death in hospital...96`, format = "%d-%b-%y"),
+    Deep_Sternal_Inf = factor(`Deep sternal wound infection`),
+    Discharge_Destination = factor(`Discharge destination from cardiothoracic ward`),
+    Ventilation_Duration = factor(`Duration of Ventilation`),
+    FFP = as.numeric(FFP),
+    HDU_Stay = as.numeric(`HDU Stay`),
+    ICU_Stay = as.numeric(`ICU Stay`),
+    InotropesIntraOp = factor(`Inotropes Used`),
+    IntraAorticBalloon = factor(`Intra-aortic balloon pump used`),
+    MultiSystemOrganFailure = factor(`Multisystem organ failure?`),
+    IntraOp_MI = factor(`Myocardial infarction`),
+    IntraOp_IntrafiltrationDialysis = factor(`New haemofiltration or dialysis`),
+    PostOp_NeurologicalDysfunction = factor(`New post-operative neurological dysfunction`),
+    Num_AortaSegments = factor(`Number of aorta segments operated on`),
+    Num_ArterialGraft = factor(`Number of arterial grafts`),
+    Num_DistalCorAnas = factor(`Number of distal coronary anastamoses`),
+    Num_Valves_repair_replace = factor(case_when(`Number of valves replaced/repaired` == 0 ~ 1,
+                                                 TRUE ~ `Number of valves replaced/repaired`)),
+    Num_VenousGrafts = factor(`Number of venous grafts`),
+    DeathStatus = factor(`Patient status at discharge...127`),
+    PCC = as.numeric(PCC),
+    Platelets = as.numeric(Platelets),
+    PostOpStay_Days = as.numeric(`Postoperative stay in days`),
+    Myocardial_Protection_Method = factor(`Predominant method of myocardial protection`),
+    PreOpStay_Days = as.numeric(`Preoperative stay in days`),
+  #  Pulmonary_Complication = as.character(`Pulmonary complications`),
+    Reason_IABP = factor(`Reason for intra-operative Intra-aortic balloon pump use`),
+    RedCells_Given = as.numeric(`Red Cells Given`),
+    Return_to_theatre = factor(`Return to theatre`),
+    Site_Wound_Infection = factor(`Site Wound Infection`),
+    TotalStay_Days = as.numeric(`Total stay in days`),
+    TrasylolUsed = factor(`Trasylol used?`),
+    WhyNoLima = factor(`Why Lima Not Used`),
+   # GraftConduit = as.character(`Graft conduit`),
+   # GraftSite = as.character(`Graft site`),
+    NativeMitralPathology = factor(`native mitral valve pathology`),
+    NativeTriCPathology = factor(`native tricuspid valve pathology`),
+   # ProcedureSite = as.character(`Procedure site`),
+    MitralValvePathology = factor(`Mitral valve haemodynamic pathology`),
+    TricuspidValvePathology = factor(`Tricuspid valve haemodynamic pathology`),
+    Tricuspid_Procedure_Bin = factor(tricuspid),
+    Tricuspid_Procedure_RepaPepl = fct_collapse(factor(case_when(`tricuspid valve procedure` == 0 ~ NA_character_,
+                                           TRUE ~ `tricuspid valve procedure`)), Repair = c("Repair with ring", "Repair without ring")),
+    Tricuspid_Procedure_Full = factor(case_when(`tricuspid valve procedure` == 0 ~ NA_character_,
+                                           TRUE ~ `tricuspid valve procedure`)),
+    MitralValveProcedure_RepaPepl = fct_collapse(factor(`mitral valve procedure`), Repair = c("Repair with ring", "Repair without ring")),
+    MitralValveProcedure_Full = factor(`mitral valve procedure`),
+    MitralValveRingSize = as.numeric(`Mitral valve or ring size (mm)`),
+    AF = factor(`atrial fibrillation`),
+    AF_Ablation = factor(`AF ablation`),
+    PFO_Closure = factor(`PFO closure`),
+    LAA_Closure = factor(`LAA closure`),
+    DateDeath = as.Date(`DBS Deceased`, "%d/%m/%Y"),
+    Dead = factor(case_when(is.na(DateDeath) ~ 0,
+                            TRUE ~ 1), levels = 0:1, labels = c("No", "Yes")),
+    DateTime_Op = as.POSIXct(`Date and time of operation...19`, format = ("%d/%m/%Y %H:%M")),
+    FU_Dates = case_when(is.na(DateDeath) ~ End_Date,
+                         TRUE ~ DateDeath),
+    Mortality_FU = as.numeric(difftime(FU_Dates, DateTime_Op, units = "days")),
+    Mortality_FU = case_when(Mortality_FU < 1 ~ 0.5,
+                             TRUE ~ Mortality_FU),
+    Mortality_FU90 = pmin(Mortality_FU, 90),
+    Mortality_90 = case_when(Mortality_FU90 < 90 & Dead == "Yes" ~ 1,
+                                      TRUE ~ 0),
+    Mortality_FU30 = pmin(Mortality_FU, 30),
+    Mortality_30 = case_when(Mortality_FU30 < 30 & Dead == "Yes" ~ 1,
+                                      TRUE ~ 0),
+    PMHx_CVATIA = factor(CVA_TIA),
+    Canadian_Score4 = factor(CCS4),
+    NYHA34_12 = factor(NYHA_3_4_vs_1_2),
+    Op_Urgency_col = factor(Operative_urgency_col),
+    Critical_Preop = factor(Critical_perioperative_state),
+    Recent_MI = factor(Recent_MI),
+    Diabetes_col = factor(Diabetes_col),
+    PulmonHTN_cat = factor(Pulmonary_hypertension_category),
+    PulmonHTN_bin = factor(Pulmonary_htn_Yes_or_No),
+    CardiacSurgery_col = factor(Previous_cardiac_surgery_col),
+    PrevPCI_col = factor(`Previous PCI_col`),
+    PulmonComplicat = factor(Pulmonary_complications_col),
+    GIComplicat = factor(GI_complications_col)
+  )
+```
+
+```{r Removing patients from dataset}
+
+Data <- Data %>% 
+  filter(NativeMitralPathology == "Degenerative" | 
+         NativeMitralPathology == "Functional regurgitation"|
+         NativeMitralPathology == "Ischaemic"|
+         NativeMitralPathology == "Infective endocarditis"|
+         NativeMitralPathology == "Rheumatic"|
+         NativeMitralPathology == "Unknown"|
+         NativeMitralPathology == "Congenital") %>%
+  filter(MitralValvePathology == "Regurgitation") %>%
+  mutate(NativeMitralPathology = recode_factor(NativeMitralPathology, Unknown = NA_character_))
+
+
+```
+
+```{r Missing data handling}
+#Remove columns and rows which have more than 60% missing data
+Data <- Data[
+             which(rowMeans(!is.na(Data)) > 0.4),
+             which(colMeans(!is.na(Data)) > 0.4)
+             ]
+
+Data_Dates <- Data %>%
+  select(where(~ is.Date(.x) | is.POSIXt(.x)))
+
+Data_woDate <- Data %>%
+  select(-where(~ is.Date(.x) | is.POSIXt(.x)))
+
+#Multiple Imputation process with the MICE package
+imp.data <- mice(data = Data_woDate, m = 5, maxit = 10, seed = 12345, print = FALSE, method = 'sample')
+imp.dataset <- complete(imp.data, 2)
+#Only using the imputed columns that were of interest
+Data <- Data %>%
+  mutate(
+    NativeMitralPathology = imp.dataset$NativeMitralPathology,
+    Diabetes_Mx = imp.dataset$Diabetes_Mx,
+    PMHx_HTN = imp.dataset$PMHx_HTN,
+    PMHx_PulmonaryDx = imp.dataset$PMHx_PulmonaryDx,
+    PMHx_CVATIA = imp.dataset$PMHx_CVATIA,
+    PrevPCI_col = imp.dataset$PrevPCI_col,
+    BloodLoss = imp.dataset$BloodLoss,
+    BloodUsed = imp.dataset$BloodUsed,
+    CumulativeBypassTime = imp.dataset$CumulativeBypassTime,
+    CumulativeCrossClampTime = imp.dataset$CumulativeCrossClampTime,
+    Ventilation_Duration = imp.dataset$Ventilation_Duration,
+    FFP = imp.dataset$FFP,
+    GIComplicat = imp.dataset$GIComplicat,
+    ICU_Stay = imp.dataset$ICU_Stay,
+    IntraOp_IntrafiltrationDialysis = imp.dataset$IntraOp_IntrafiltrationDialysis,
+    Platelets = imp.dataset$Platelets,
+    MultiSystemOrganFailure = imp.dataset$MultiSystemOrganFailure
+  )
+```
+
+```{r Table 1}
+theme_gtsummary_journal(journal = "jama")
+#> Setting theme `JAMA`
+theme_gtsummary_compact()
+#> Setting theme `Compact
+
+Data_woDate <- Data %>%
+  select(-where(~ is.Date(.x) | is.POSIXt(.x)), -DateTime_LastCatheter)
+
+tbl1a <- tbl_summary(Data_woDate, by = "MitralValveProcedure_RepaPepl") %>%
+  add_difference(everything() ~ "smd")
+
+tbl1 <- tbl_summary(Data_woDate, by = "MitralValveProcedure_RepaPepl") %>%
+  add_difference(everything() ~ "smd") %>%
+  as_gt()
+
+gt::gtsave(tbl1, "/Users/ruq20tzu/Documents/TableOne_SMD_2.html")
+
+tbl2a <- tbl_summary(Data_woDate, by = "MitralValveProcedure_RepaPepl") %>%
+  add_p() %>%
+  bold_p()
+
+tbl2 <- tbl_summary(Data_woDate, by = "MitralValveProcedure_RepaPepl") %>%
+  add_p() %>%
+  bold_p() %>%
+  as_gt()
+
+gt::gtsave(tbl2, "/Users/ruq20tzu/Documents/TableOne_p_2.html")
+```
+
+```{r Colinearity Visualisation (numeric only)}
+cairo_pdf(filename = "Colinearity/Corplot.pdf", width=30, height=30)
+ggstatsplot::ggcorrmat(Data)
+dev.off()
+```
+
+```{r Propensity Score Matching}
+Data_PS_Mort <- Data %>%
+  drop_na(MitralValveProcedure_RepaPepl, Age , Gender , BMI , PMHx_HTN, Diabetes_col, Dyspnoea_Status, PrevPCI_col, CardiacSurgery_col, PMHx_PulmonaryDx, Smoking_Stat, PMHx_CVATIA, Canadian_Score4, Critical_Preop, PulmonHTN_bin, AF, LMS_Dx, Extent_of_CorVessDx, Extracardiac_Arteriopathy, Recent_MI, LVEF_Cat, Op_Urgency_col, CreatinineGT200, CABG, Tricuspid_Procedure_Bin, NativeMitralPathology, Logistic_EUROScore, AF_Ablation, LAA_Closure, Minimitral) %>%
+ mutate(MitralValvePathology = fct_drop(MitralValvePathology))
+# Had to drop MitralValvePathology as they were all Regurgitation. Changed from nativemitralpathology to mitralvalvepathology
+
+set.seed(1234)
+
+library(MatchIt)
+
+match.it <- matchit(MitralValveProcedure_RepaPepl ~ Age + Gender + BMI + PMHx_HTN+ Diabetes_col +NativeMitralPathology + Dyspnoea_Status+ PrevPCI_col+ CardiacSurgery_col+ PMHx_PulmonaryDx+ Smoking_Stat+ PMHx_CVATIA+ Canadian_Score4+ Critical_Preop+ PulmonHTN_bin+ AF+ LMS_Dx+ Extent_of_CorVessDx+ Extracardiac_Arteriopathy+ Recent_MI+ LVEF_Cat+ Op_Urgency_col+ CreatinineGT200+ CABG+ Tricuspid_Procedure_Bin + Logistic_EUROScore + AF_Ablation + LAA_Closure + Minimitral, data = Data_PS_Mort,  method = "genetic", exact = ~ Dyspnoea_Status, replace = TRUE, caliper = 0.2, pop.size = 200, ratio = 1)
+a <- summary(match.it)
+
+#create new dataframe without unmatched
+df.match1 <- get_matches(match.it)
+
+write_csv(df.match1, "/Users/ruq20tzu/Documents/PS_Match_All_New.csv")
+
+df.match_All <- df.match1
+```
+
+```{r Table 1 PS_Match}
+theme_gtsummary_journal(journal = "jama")
+#> Setting theme `JAMA`
+theme_gtsummary_compact()
+#> Setting theme `Compact
+
+tbl1b <- tbl_summary(df.match_All[,-(1:2)], by = "MitralValveProcedure_RepaPepl") %>%
+  add_difference(everything() ~ "smd") %>%
+  modify_column_hide(p.value)
+
+tbl1 <- tbl_summary(df.match_All[,-(1:2)], by = "MitralValveProcedure_RepaPepl") %>%
+  add_difference(everything() ~ "smd") %>%
+  modify_column_hide(p.value) %>%
+  as_gt()
+
+gt::gtsave(tbl1, "/Users/ruq20tzu/Documents/TableOne_SMD_PS_New.html")
+
+tbl2b <- tbl_summary(df.match_All[,-(1:2)], by = "MitralValveProcedure_RepaPepl") %>%
+  add_p() %>%
+  bold_p()
+
+tbl2 <- tbl_summary(df.match_All[,-(1:2)], by = "MitralValveProcedure_RepaPepl") %>%
+  add_p() %>%
+  bold_p() %>%
+  as_gt()
+
+gt::gtsave(tbl2, "/Users/ruq20tzu/Documents/TableOne_p_PS_New.html")
+```
+
+```{r Merging both tables}
+
+Tbl1 <- tbl_merge(tbls = list(tbl1a, tbl1b),
+          tab_spanner = c("**All Patients**", "**Propensity Matched**")) %>% as_gt()
+
+Tbl2 <- tbl_merge(tbls = list(tbl2a, tbl2b),
+          tab_spanner = c("**All Patients**", "**Propensity Matched**")) %>% as_gt()
+
+gt::gtsave(Tbl1, "/Users/ruq20tzu/Documents/TableOne_Combined_SMD_New.html")
+gt::gtsave(Tbl2, "/Users/ruq20tzu/Documents/TableOne_Combined_P_New.html")
+```
+
+```{r CoxRegression UV Mortality}
+UniLevel <- map(df.match_All, ~nlevels(.x)) %>% as.data.frame() %>% t %>% as.data.frame() %>% filter(V1==1) %>% rownames() %>% dput() 
+
+Data_PS <- df.match_All
+
+UV_T <- gtsummary::tbl_uvregression(Data_PS,
+                 method = survival::coxph,
+               #  method.args = list(weights = weights),
+                 y = survival::Surv(time = Mortality_FU, event = as.numeric(Dead)),
+                 tidy_fun = broom.helpers::tidy_parameters,
+                 exponentiate = T,
+                 include = c(-id, -subclass, -ID, -all_of(UniLevel), -Dead, -Mortality_FU, -MitralValvePathology, -weights, -Mortality_30, -Mortality_90, -Mortality_FU30, -Mortality_FU90)) %>%
+  modify_header(label = paste0("Mortality (Weighted_Univariate)")) %>%
+  bold_p() %>%
+  as_gt()
+
+gt::gtsave(UV_T, paste0("/Users/ruq20tzu/Documents/WeightedCox_UV.html"))
+```
+
+```{r CoxRegression UV Mortality 90}
+UniLevel <- map(df.match_All, ~nlevels(.x)) %>% as.data.frame() %>% t %>% as.data.frame() %>% filter(V1==1) %>% rownames() %>% dput() 
+
+Data_PS <- df.match_All
+
+UV_T <- gtsummary::tbl_uvregression(Data_PS,
+                 method = survival::coxph,
+               #  method.args = list(weights = weights),
+                 y = survival::Surv(time = Mortality_FU90, event = as.numeric(Mortality_90)),
+                 tidy_fun = broom.helpers::tidy_parameters,
+                 exponentiate = T,
+                 include = c(-id, -subclass, -ID, -all_of(UniLevel), -Dead, -Mortality_FU, -MitralValvePathology, -weights, -Mortality_30, -Mortality_90, -Mortality_FU30, -Mortality_FU90)) %>%
+  modify_header(label = paste0("Mortality (Weighted_Univariate)")) %>%
+  bold_p() %>%
+  as_gt()
+gt::gtsave(UV_T, paste0("/Users/ruq20tzu/Documents/WeightedCox_UV90.html"))
+```
+
+```{r CoxRegression UV Mortality 30}
+UniLevel <- map(df.match_All, ~nlevels(.x)) %>% as.data.frame() %>% t %>% as.data.frame() %>% filter(V1==1) %>% rownames() %>% dput() 
+
+Data_PS <- df.match_All
+
+UV_T <- gtsummary::tbl_uvregression(Data_PS,
+                 method = survival::coxph,
+               #  method.args = list(weights = weights),
+                 y = survival::Surv(time = Mortality_FU30, event = as.numeric(Mortality_30)),
+                 tidy_fun = broom.helpers::tidy_parameters,
+                 exponentiate = T,
+                 include = c(-id, -subclass, -ID, -all_of(UniLevel), -Dead, -Mortality_FU, -MitralValvePathology, -weights, Mortality_30, -Mortality_90, -Mortality_FU30, -Mortality_FU90)) %>%
+  modify_header(label = paste0("Mortality (Weighted_Univariate)")) %>%
+  bold_p() %>%
+  as_gt()
+
+gt::gtsave(UV_T, paste0("/Users/ruq20tzu/Documents/WeightedCox_UV30.html"))
+```
+
+
+```{r KM Curve (weighted)}
+library(survival)
+library(survminer)
+
+fit1<- survfit(Surv(time = Mortality_FU, event = as.numeric(Dead)) ~ MitralValveProcedure_RepaPepl, data = Data_PS)
+plot1 <- ggsurvplot(fit1, pval = TRUE, conf.int = TRUE,
+           risk.table = T, risk.table.y.text.col = TRUE, xscale="d_y", legend.labs = c("Repair", "Replacement"), xlab = "Years Since Index Procedure", ylab = "Survival Probability", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 1826.25, pval.coord = c(0,0.3), legend.title = "")
+
+cairo_pdf(filename = "/Users/ruq20tzu/Documents/KM_Weighted.pdf",
+         width = 6.2, height = 6, onefile = T)
+print(plot1, newpage = F)
+dev.off()
+
+```
+
+```{r KM Curve (90)}
+fit1<- survfit(Surv(time = Mortality_FU90, event = as.numeric(Mortality_90)) ~ MitralValveProcedure_RepaPepl, data = Data_PS, weights = weights)
+plot1 <- ggsurvplot(fit1, pval = TRUE, conf.int = TRUE,
+           risk.table = T, risk.table.y.text.col = TRUE, legend.labs = c("Repair", "Replacement"), xlab = "Days Since Index Procedure", ylab = "Survival Probability", palette = c("#fba30c", "#0077b8"), theme = "lancet", break.time.by	= 30, pval.coord = c(0,0.9), legend.title = "", ylim=c(0.85, 1))
+
+cairo_pdf(filename = "/Users/ruq20tzu/Documents/KM_Weighted90.pdf",
+         width = 6.2, height = 6, onefile = T)
+print(plot1, newpage = F)
+dev.off()
+
+```
+
+```{r KM Curve (30)}
+fit1<- survfit(Surv(time = Mortality_FU30, event = as.numeric(Mortality_30)) ~ MitralValveProcedure_RepaPepl, data = Data_PS, weights = weights)
+plot1 <- ggsurvplot(fit1, pval = TRUE, conf.int = TRUE,
+           risk.table = T, risk.table.y.text.col = TRUE, legend.labs = c("Repair", "Replacement"), xlab = "Days Since Index Procedure", ylab = "Survival Probability", palette = c("#fba30c", "#0077b8"), theme = "lancet", pval.coord = c(0,0.925), legend.title = "", break.time.by	= 5, ylim=c(0.9, 1))
+
+cairo_pdf(filename = "/Users/ruq20tzu/Documents/KM_Weighted30.pdf",
+         width = 6.2, height = 6, onefile = T)
+print(plot1, newpage = F)
+dev.off()
+
+```
